@@ -1,3 +1,14 @@
 /* mbedTLS for the MARS firmware: SHA-256 and HMAC (the md layer), nothing else. */
 #define MBEDTLS_MD_C
 #define MBEDTLS_SHA256_C
+
+#ifdef MARS_GATE
+/* Behind the PMP gate, allocations stay inside the protected block (gate/gate_fw.c). */
+#include <stddef.h>
+#define MBEDTLS_PLATFORM_C
+#define MBEDTLS_PLATFORM_MEMORY
+#define MBEDTLS_PLATFORM_CALLOC_MACRO fw_calloc
+#define MBEDTLS_PLATFORM_FREE_MACRO   fw_free
+void *fw_calloc(size_t n, size_t size);
+void fw_free(void *p);
+#endif

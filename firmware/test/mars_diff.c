@@ -11,8 +11,18 @@
 #include <stdlib.h>
 #include "mars.h"
 
-extern bool failure;     /* mars.c:48 -- the driver's way into failure mode */
-void _MARS_Init(void);   /* mars.c:360 -- the reset signal, run at boot as a constructor */
+#ifdef MARS_GATE
+/* Behind the PMP gate the driver runs in user mode and reaches the firmware's
+   failure flag and reset signal through the gate's test hooks. */
+#include "gate.h"
+#define set_failure() gate_test_set_failure()
+#define do_reset()    gate_test_reset()
+#else
+extern bool failure;     /* the driver's way into failure mode */
+void _MARS_Init(void);   /* the reset signal, run at boot as a constructor */
+#define set_failure() (failure = true)
+#define do_reset()    _MARS_Init()
+#endif
 
 #ifndef NCALLS
 #define NCALLS 5000
@@ -327,7 +337,7 @@ static void s_sequence(void)             /* a whole hash sequence, chunked */
 static void s_reset(void)
 {
     tag("Reset(_MARS_Init)"); flush(); printf("\n");
-    _MARS_Init();
+    do_reset();
 }
 
 static void one_call(uint32_t r);
@@ -337,12 +347,18 @@ static void s_inject_failure(void)
 {
     int k = 3 + (int)below(8);
     tag("InjectFailure"); flush(); printf("\n");
-    failure = true;
+    set_failure();
     while (k--) one_call(below(800));
     s_reset();
 }
 
+#ifdef MARS_GATE
+static int user_main(int argc, char **argv);
+int main(int argc, char **argv) { gate_run_user(user_main, argc, argv); }
+static int user_main(int argc, char **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
     unsigned long ncalls = NCALLS;
     uint64_t seed = SEED;
