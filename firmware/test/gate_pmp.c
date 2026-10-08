@@ -34,8 +34,23 @@ static int user_main(int argc, char **argv)
           MARS_RegRead(0, __fw_start - 16), MARS_RC_BUFFER);
     check("RegRead from user mode still works", MARS_RegRead(0, dig), MARS_RC_SUCCESS);
 
+    unsigned long c0, c1;
+    asm volatile ("rdcycle %0" : "=r"(c0));
+    asm volatile ("rdcycle %0" : "=r"(c1));
+    check("cycle counter readable from user mode", c1 > c0, 1);
+
     printf("%s gate_pmp (%d failed)\n", fails ? "FAIL" : "PASS", fails);
     return fails != 0;
 }
 
-int main(int argc, char **argv) { gate_run_user(user_main, argc, argv); }
+int main(int argc, char **argv)
+{
+    /* Rocket leaves the trap delegation registers unreset; start from the worst case. */
+    unsigned long misa;
+    asm volatile ("csrr %0, misa" : "=r"(misa));
+    if (misa & (1ul << ('S' - 'A'))) {
+        asm volatile ("csrw medeleg, %0" :: "r"(-1L));
+        asm volatile ("csrw mideleg, %0" :: "r"(-1L));
+    }
+    gate_run_user(user_main, argc, argv);
+}

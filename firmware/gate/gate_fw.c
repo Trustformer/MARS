@@ -2,6 +2,7 @@
    ecalls dispatch to MARS_* after checking that every buffer lies outside the block,
    and mbedTLS allocates from a pool inside it.  Linked into the protected block. */
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -146,6 +147,9 @@ void gate_dispatch(uintptr_t *f)
         csr_write(mepc, epc + ((*(uint16_t *)epc & 3) == 3 ? 4 : 2));
         return;
     }
+    printf("gate: unexpected trap, mcause %lu mepc %lx mtval %lx ra %lx sp %lx, from %s mode\n",
+           (unsigned long)cause, (unsigned long)epc, (unsigned long)csr_read(mtval), (unsigned long)f[0],
+           (unsigned long)csr_read(mscratch), from_user ? "user" : "machine");
     exit(1000 + (int)cause);
 }
 
@@ -160,6 +164,12 @@ void gate_run_user(int (*entry)(int, char **), int argc, char **argv)
     csr_write(mscratch, __fw_stack_top);
     csr_write(mtvec, gate_trap);
     csr_write(mcounteren, 7);                           /* cycle, time, instret */
+    csr_write(mie, 0);                                  /* the gate takes no interrupts */
+    if (csr_read(misa) & (1u << ('S' - 'A'))) {         /* with S mode: every trap to M, U counts */
+        csr_write(medeleg, 0);
+        csr_write(mideleg, 0);
+        csr_write(scounteren, 7);
+    }
     csr_write(mepc, entry);
     csr_write(mstatus, csr_read(mstatus) & ~(uintptr_t)(3u << 11));   /* MPP = user */
     register uintptr_t a0 asm("a0") = (uintptr_t)argc;

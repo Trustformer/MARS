@@ -28,7 +28,7 @@ LD_testbed := -specs=htif_nano.specs
 LD_core    := -specs=htif.specs
 RV_LD      := -static -T htif.ld
 # spike models the core; libc and crt0 carry compressed instructions either way.
-SPIKE_ISA  := rv64imafdc_zba_zbb_zbs
+SPIKE_ISA  := rv64imafdc_zicntr_zba_zbb_zbs
 
 .PHONY: host-check spike-check clean
 .SECONDARY:
