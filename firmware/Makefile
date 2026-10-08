@@ -121,3 +121,15 @@ spike-check: $(B)/host/ref-mars_diff $(B)/rv-testbed/mars_diff.riscv $(B)/rv-cor
 
 clean:
 	rm -rf $(B)
+
+# -- libmarsfw.a for another build ---------------------------------------------
+#   make lib NAME=<dir> LIBCC='<compiler and flags>' LIBAR=<ar> [GATE=1]
+# The Trustformer testbed builds its SoC programs against this.
+ifdef NAME
+FWCC_$(NAME) = $(LIBCC) $(if $(GATE),-DMARS_GATE -DMARS_GATE_TEST_HOOKS -Igate -include fw_rename.h)
+LIB_OBJ      = $(call FW_OBJ,$(B)/$(NAME)) $(if $(GATE),$(addprefix $(B)/$(NAME)/,platform.o gate_fw.o gate_trap.o))
+.PHONY: lib
+lib: $(B)/$(NAME)/libmarsfw.a
+$(B)/$(NAME)/libmarsfw.a: $(LIB_OBJ)
+	$(LIBAR) rcs $@ $^
+endif

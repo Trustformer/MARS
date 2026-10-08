@@ -12,6 +12,7 @@ extern char __fw_start[], __fw_end[], __fw_bss_start[], __fw_bss_end[];
 extern char __fw_heap[], __fw_heap_end[], __fw_stack_top[];
 extern bool failure;
 void _MARS_Init(void);
+void CryptSnapshot(void *out, uint32_t regSelect, const void *ctx, uint16_t ctxlen);
 void gate_trap(void);
 
 #define PMP_R   0x01
@@ -114,6 +115,10 @@ static long call(long fn, uintptr_t *f)
         return 0;
     case GATE_TestReset:
         _MARS_Init();
+        return 0;
+    case GATE_TestSnapshot:
+        USER(0, DL); USER(2, DL);
+        CryptSnapshot(P(0), (uint32_t)A(1), P(2), DL);
         return 0;
 #endif
     case GATE_LastFault: {

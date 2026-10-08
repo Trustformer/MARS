@@ -10,7 +10,7 @@ enum gate_fn {
     GATE_SelfTest, GATE_CapabilityGet, GATE_SequenceHash, GATE_SequenceUpdate,
     GATE_SequenceComplete, GATE_PcrExtend, GATE_RegRead, GATE_Derive, GATE_DpDerive,
     GATE_PublicRead, GATE_Quote, GATE_Sign, GATE_SignatureVerify,
-    GATE_TestSetFailure, GATE_TestReset, GATE_LastFault,
+    GATE_TestSetFailure, GATE_TestReset, GATE_LastFault, GATE_TestSnapshot,
 };
 
 long gate_call(long fn, long a0, long a1, long a2, long a3, long a4, long a5);
@@ -21,6 +21,9 @@ void gate_run_user(int (*entry)(int, char **), int argc, char **argv) __attribut
 /* Test-only hooks, present when the firmware is built with MARS_GATE_TEST_HOOKS. */
 static inline void gate_test_set_failure(void) { gate_call(GATE_TestSetFailure, 0, 0, 0, 0, 0, 0); }
 static inline void gate_test_reset(void)       { gate_call(GATE_TestReset, 0, 0, 0, 0, 0, 0); }
+/* CryptSnapshot over the firmware's PCRs: what Quote signs, for a 32-byte nonce. */
+static inline void gate_test_snapshot(void *out, uint32_t regsel, const void *nonce)
+{ gate_call(GATE_TestSnapshot, (long)(uintptr_t)out, (long)regsel, (long)(uintptr_t)nonce, 0, 0, 0); }
 /* mcause of the last user-mode access fault the gate absorbed (0 = none), then cleared. */
 static inline long gate_last_fault(void)       { return gate_call(GATE_LastFault, 0, 0, 0, 0, 0, 0); }
 #endif
