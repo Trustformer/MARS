@@ -5,7 +5,13 @@
 // should be defined in the Profile hw_xxxx.h
 #define CryptDpInit() CryptSkdf(DP, PS, MARS_LD, MARS_debug ? "dbg" : "prd", 3)
 
+#ifndef MARS_BAREMETAL
 #include <arpa/inet.h> // for htonl()
+#elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define htonl(x) __builtin_bswap32(x)
+#else
+#define htonl(x) (x)
+#endif
 #include <string.h> // for memset()
 #include <stdio.h>
 #include <stdbool.h>
@@ -46,12 +52,19 @@ static uint8_t DP[PROFILE_LEN_KSYM];
 static uint8_t REG[PROFILE_COUNT_REG][PROFILE_LEN_DIGEST];
 
 bool failure = false;
+#ifdef MARS_PROFILE_PRD
+bool MARS_debug = false;
+#else
 bool MARS_debug = true;
+#endif
 static profile_shc_t shc;   // Sequenced Hash Context
 // ---------------------------------------------------------
 
 #define CHECKRC if (rc) { printf("rc=%d, line=%d\n", rc, __LINE__); exit(rc); }
 
+#ifdef MARS_QUIET
+#define hexout(msg, buf, len) ((void)0)
+#else
 static void hexout(const char *msg, const void *buf, uint16_t len)
 {
 typeof(len) i;
@@ -61,6 +74,7 @@ typeof(len) i;
         printf("%02x", ((uint8_t *)buf)[i]);
     printf("\n");
 }
+#endif
 
 void MARS_dump(void)
 {

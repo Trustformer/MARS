@@ -1,0 +1,23 @@
+#include "mbedtls/sha256.h"
+
+// From TCG Algorithm Registry
+#define TPM_ALG_ERROR 0
+#define TPM_ALG_HMAC 5
+#define TPM_ALG_SHA256 0xb
+#define TPM_ALG_KDF1_SP800_108 0x22
+
+#ifndef PROFILE_COUNT_PCR
+#define PROFILE_COUNT_PCR  4
+#endif
+#define PROFILE_COUNT_TSR  0
+#define PROFILE_LEN_DIGEST 32
+#define PROFILE_LEN_SIGN   PROFILE_LEN_DIGEST
+#define PROFILE_LEN_KSYM   PROFILE_LEN_DIGEST
+#define PROFILE_LEN_KPUB   0
+#define PROFILE_LEN_KPRV   0
+#define PROFILE_ALG_HASH   TPM_ALG_SHA256
+#define PROFILE_ALG_SIGN   TPM_ALG_HMAC
+#define PROFILE_ALG_SKDF   TPM_ALG_KDF1_SP800_108
+#define PROFILE_ALG_AKDF   TPM_ALG_ERROR
+
+typedef mbedtls_sha256_context profile_shc_t;
