@@ -1,6 +1,6 @@
 /* Machine-mode side of the MARS gate: PMP closes the firmware block to user mode,
    ecalls dispatch to MARS_* after checking that every buffer lies outside the block,
-   and mbedTLS allocates from a pool inside it.  Linked into the protected block. */
+   with its stack inside it.  Linked into the protected block. */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -10,7 +10,7 @@
 #include "gate.h"
 
 extern char __fw_start[], __fw_end[], __fw_bss_start[], __fw_bss_end[];
-extern char __fw_heap[], __fw_heap_end[], __fw_stack_top[];
+extern char __fw_stack_top[];
 extern bool failure;
 void _MARS_Init(void);
 void CryptSnapshot(void *out, uint32_t regSelect, const void *ctx, uint16_t ctxlen);
@@ -28,31 +28,6 @@ void gate_trap(void);
 static void __attribute__((constructor(101))) fw_zero_bss(void)
 {
     memset(__fw_bss_start, 0, (size_t)(__fw_bss_end - __fw_bss_start));
-}
-
-/* mbedTLS allocates only inside one call, so the pool empties (and is wiped) when
-   the last allocation is freed. */
-static size_t heap_used;
-static unsigned heap_live;
-
-void *fw_calloc(size_t n, size_t size)
-{
-    if (size && n > SIZE_MAX / size) return NULL;
-    size_t sz = (n * size + 15) & ~(size_t)15;
-    if (sz > (size_t)(__fw_heap_end - __fw_heap) - heap_used) return NULL;
-    void *p = __fw_heap + heap_used;
-    heap_used += sz;
-    heap_live++;
-    memset(p, 0, sz);
-    return p;
-}
-
-void fw_free(void *p)
-{
-    if (p && heap_live && --heap_live == 0) {
-        memset(__fw_heap, 0, heap_used);
-        heap_used = 0;
-    }
 }
 
 static bool in_user(uintptr_t a, size_t len)

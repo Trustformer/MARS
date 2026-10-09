@@ -2,8 +2,8 @@
 #define MBEDTLS_MD_C
 #define MBEDTLS_SHA256_C
 
-#ifdef MARS_GATE
-/* Behind the PMP gate, allocations stay inside the protected block (gate/gate_fw.c). */
+#ifdef MARS_BAREMETAL
+/* On bare metal, mbedTLS allocates from fw_alloc.c's pool. */
 #include <stddef.h>
 #define MBEDTLS_PLATFORM_C
 #define MBEDTLS_PLATFORM_MEMORY

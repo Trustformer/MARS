@@ -22,7 +22,7 @@ crypto backend; `test/mars_diff.c` prints those calls outside the compared strea
 
 With `-DMARS_GATE` the firmware runs in machine mode and its caller in user mode.
 `gate.ld` places the firmware (`libmarsfw.a`: the emulator, mbedTLS, `gate_fw.c`)
-in one block with its own stack and allocation pool; `gate_run_user` closes that
+in one block with its own stack; `gate_run_user` closes that
 block to user mode with PMP and drops into the caller. Every `MARS_*` call from user
 mode is an `ecall` (`gate_user.c`), which `gate_fw.c` dispatches after checking that
 each buffer lies outside the block. `make spike-check` runs the differential driver

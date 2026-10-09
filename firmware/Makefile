@@ -15,9 +15,9 @@ CALLS ?= 5000
 
 # This project's Profile: two PCRs, production key labels.
 PROFILE  := -DPROFILE_COUNT_PCR=2 -DMARS_PROFILE_PRD
-MBED_SRC := sha256 md platform_util
+MBED_SRC := sha256 md platform_util platform
 FW_INC   := -I. -I$(EMU) -I$(MBED)/include '-DMBEDTLS_CONFIG_FILE="mars_mbedtls_config.h"'
-FW_OBJ    = $(addprefix $(1)/,mars.o hw_sha2_mbedtls.o $(addsuffix .o,$(MBED_SRC)))
+FW_OBJ    = $(addprefix $(1)/,mars.o hw_sha2_mbedtls.o fw_alloc.o $(addsuffix .o,$(MBED_SRC)))
 
 HOST_CC := gcc -O2 -std=gnu99 -Wno-deprecated-declarations
 # Bare-metal variants: the testbed's default flags, and everything the core supports.
@@ -54,6 +54,9 @@ $(B)/%/platform_util.o: $(MBED)/library/platform_util.c
 $(B)/%/platform.o: $(MBED)/library/platform.c
 	@mkdir -p $(@D)
 	$(FWCC_$*) $(FW_INC) -c $< -o $@
+$(B)/%/fw_alloc.o: fw_alloc.c
+	@mkdir -p $(@D)
+	$(FWCC_$*) -c $< -o $@
 $(B)/%/gate_fw.o: gate/gate_fw.c
 	@mkdir -p $(@D)
 	$(FWCC_$*) $(FW_INC) -c $< -o $@
@@ -71,7 +74,7 @@ FWCC_rv-core    = $(CC_rv-core)
 # Behind the PMP gate: the firmware in machine mode, the caller in user mode.
 CC_rv-gate   := $(RV_CC) $(RV_core) -DMARS_GATE -Igate
 FWCC_rv-gate := $(CC_rv-gate) -DMARS_GATE_TEST_HOOKS -include fw_rename.h
-GATE_OBJ      = $(call FW_OBJ,$(B)/rv-gate) $(addprefix $(B)/rv-gate/,platform.o gate_fw.o gate_trap.o)
+GATE_OBJ      = $(call FW_OBJ,$(B)/rv-gate) $(addprefix $(B)/rv-gate/,gate_fw.o gate_trap.o)
 
 $(B)/rv-gate/libmarsfw.a: $(GATE_OBJ)
 	riscv64-unknown-elf-ar rcs $@ $^
@@ -127,7 +130,7 @@ clean:
 # The Trustformer testbed builds its SoC programs against this.
 ifdef NAME
 FWCC_$(NAME) = $(LIBCC) $(if $(GATE),-DMARS_GATE -DMARS_GATE_TEST_HOOKS -Igate -include fw_rename.h)
-LIB_OBJ      = $(call FW_OBJ,$(B)/$(NAME)) $(if $(GATE),$(addprefix $(B)/$(NAME)/,platform.o gate_fw.o gate_trap.o))
+LIB_OBJ      = $(call FW_OBJ,$(B)/$(NAME)) $(if $(GATE),$(addprefix $(B)/$(NAME)/,gate_fw.o gate_trap.o))
 .PHONY: lib
 lib: $(B)/$(NAME)/libmarsfw.a
 $(B)/$(NAME)/libmarsfw.a: $(LIB_OBJ)

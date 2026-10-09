@@ -121,9 +121,6 @@ SECTIONS
         PROVIDE (__fw_bss_start = .);
         *libmarsfw.a:*(.sbss .sbss.* .bss .bss.* COMMON)
         . = ALIGN (16);
-        PROVIDE (__fw_heap = .);
-        . += 4K;
-        PROVIDE (__fw_heap_end = .);
         . += 8K;
         PROVIDE (__fw_stack_top = .);
         PROVIDE (__fw_bss_end = .);
